@@ -1,36 +1,21 @@
 import express from "express";
-
 import {
-  getAdminDashboard,
-  getAdminUsers,
-  getAdminRecruiters,
-  getAdminJobs,
-  getAdminApplications,
-  getAdminCompanies,
+  getAdminDashboard, getAdminUsers, getAdminRecruiters, getAdminJobs, getAdminApplications, getAdminCompanies,
+  updateAdminUser, updateAdminJob, deleteAdminJob, updateAdminApplication, updateAdminCompany,
 } from "../controllers/adminController.js";
-
-import {
-  protect,
-  adminOnly,
-} from "../middleware/authMiddleware.js";
+import { protect, adminOnly } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
-
-// =====================================================
-// ADMIN DASHBOARD
-// =====================================================
-
-router.get(
-  "/dashboard",
-  protect,
-  adminOnly,
-  getAdminDashboard
-);
-
-router.get("/users", protect, adminOnly, getAdminUsers);
-router.get("/recruiters", protect, adminOnly, getAdminRecruiters);
-router.get("/jobs", protect, adminOnly, getAdminJobs);
-router.get("/applications", protect, adminOnly, getAdminApplications);
-router.get("/companies", protect, adminOnly, getAdminCompanies);
-
+router.use(protect, adminOnly);
+router.get("/dashboard", getAdminDashboard);
+router.get("/users", getAdminUsers);
+router.patch("/users/:id", updateAdminUser);
+router.get("/recruiters", getAdminRecruiters);
+router.get("/jobs", getAdminJobs);
+router.patch("/jobs/:id", updateAdminJob);
+router.delete("/jobs/:id", deleteAdminJob);
+router.get("/applications", getAdminApplications);
+router.patch("/applications/:id", updateAdminApplication);
+router.get("/companies", getAdminCompanies);
+router.patch("/companies/:id", updateAdminCompany);
 export default router;

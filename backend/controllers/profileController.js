@@ -49,6 +49,9 @@ const profileFields = [
   "experience",
   "linkedin",
   "portfolio",
+  "website",
+  "company",
+  "designation",
   "resume",
   "isVerified",
   "isActive",
@@ -411,6 +414,104 @@ export const updateMyProfile = async (
       message:
         error.message ||
         "Unable to update profile.",
+    });
+  }
+};
+
+/*
+|--------------------------------------------------------------------------
+| RECRUITER PROFILE
+|--------------------------------------------------------------------------
+| GET  /api/recruiter/profile
+| PUT  /api/recruiter/profile
+|--------------------------------------------------------------------------
+*/
+
+export const getRecruiterProfile = async (req, res) => {
+  try {
+    if (!req.user?._id) {
+      return res.status(401).json({ success: false, message: "Authentication required." });
+    }
+
+    if (req.user.role !== "recruiter") {
+      return res.status(403).json({ success: false, message: "Recruiter access required." });
+    }
+
+    const user = await User.findById(req.user._id).select(profileFields.join(" "));
+    if (!user) {
+      return res.status(404).json({ success: false, message: "Recruiter profile not found." });
+    }
+
+    return res.status(200).json({
+      success: true,
+      profile: sanitizeUser(user, req),
+    });
+  } catch (error) {
+    console.error("Get recruiter profile error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Unable to load recruiter profile.",
+    });
+  }
+};
+
+export const updateRecruiterProfile = async (req, res) => {
+  try {
+    if (!req.user?._id) {
+      return res.status(401).json({ success: false, message: "Authentication required." });
+    }
+
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).json({ success: false, message: "Recruiter profile not found." });
+    }
+
+    if (user.role !== "recruiter") {
+      return res.status(403).json({ success: false, message: "Only recruiters can update recruiter profiles." });
+    }
+
+    const fields = [
+      "name",
+      "phone",
+      "location",
+      "headline",
+      "bio",
+      "company",
+      "designation",
+      "linkedin",
+      "website",
+      "portfolio",
+    ];
+
+    for (const field of fields) {
+      if (req.body[field] !== undefined) {
+        const value = String(req.body[field]).trim();
+        if (field === "name" && !value) {
+          return res.status(400).json({ success: false, message: "Name cannot be empty." });
+        }
+        user[field] = value;
+      }
+    }
+
+    const profileImage = req.files?.profileImage?.[0];
+    if (profileImage) {
+      const oldImage = user.profileImage;
+      user.profileImage = profileImage.filename;
+      if (oldImage) deleteOldFile(oldImage);
+    }
+
+    await user.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Recruiter profile updated successfully.",
+      profile: sanitizeUser(user, req),
+    });
+  } catch (error) {
+    console.error("Update recruiter profile error:", error);
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Unable to update recruiter profile.",
     });
   }
 };

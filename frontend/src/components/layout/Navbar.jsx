@@ -1,4 +1,5 @@
 import { Link, useNavigate } from "react-router-dom";
+import logo from "../../assets/jobify.png";
 import {
   FiBriefcase,
   FiMenu,
@@ -8,6 +9,7 @@ import {
 } from "react-icons/fi";
 import { useState } from "react";
 import { useAuth } from "../../context/AuthContext";
+
 
 export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -19,71 +21,35 @@ export default function Navbar() {
   const handleLogout = () => {
     logout();
     setMenuOpen(false);
-    navigate("/", { replace: true });
+    navigate("/");
   };
 
   const closeMenu = () => {
     setMenuOpen(false);
   };
 
-  /*
-   * Normalize role so navigation works even if
-   * backend returns "Candidate", "CANDIDATE", etc.
-   */
-  const role = String(user?.role || "")
-    .trim()
-    .toLowerCase();
-
-  /*
-   * Get the correct dashboard URL for the
-   * currently logged-in user.
-   */
-  const getDashboardPath = () => {
-    if (role === "admin") {
-      return "/admin/dashboard";
-    }
-
-    if (role === "recruiter") {
-      return "/recruiter/dashboard";
-    }
-
-    if (role === "candidate") {
-      return "/candidate/dashboard";
-    }
-
-    /*
-     * Fallback for an authenticated user with
-     * an unexpected/missing role.
-     */
-    return "/candidate/dashboard";
-  };
-
-  const dashboardPath = getDashboardPath();
-
   return (
     <header className="sticky top-0 z-50 border-b border-slate-200 bg-white">
       <div className="mx-auto flex h-[72px] max-w-7xl items-center justify-between px-6">
 
-        {/* =====================================================
-            LOGO
-        ====================================================== */}
+        {/* Logo */}
         <Link
           to="/"
           onClick={closeMenu}
           className="flex items-center gap-2"
         >
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-600 text-white">
-            <FiBriefcase size={20} />
-          </div>
+          <img
+  src={logo}
+  alt="Jobify"
+  className="h-10 w-10 rounded-lg object-contain"
+/>
 
-          <span className="text-xl font-bold tracking-tight text-slate-900">
-            Jobify
-          </span>
+<span className="text-xl font-bold tracking-tight text-slate-900">
+  Jobify
+</span>
         </Link>
 
-        {/* =====================================================
-            DESKTOP NAVIGATION
-        ====================================================== */}
+        {/* Desktop Navigation */}
         <nav className="hidden items-center gap-8 md:flex">
 
           <Link
@@ -116,18 +82,20 @@ export default function Navbar() {
 
         </nav>
 
-        {/* =====================================================
-            DESKTOP ACTIONS
-        ====================================================== */}
+        {/* Desktop Actions */}
         <div className="hidden items-center gap-3 md:flex">
 
           {isAuthenticated ? (
             <>
-              {/* =================================================
-                  LOGGED-IN USER / DASHBOARD LINK
-              ================================================== */}
+              {/* Logged in user */}
               <Link
-                to={dashboardPath}
+                to={
+                  user?.role === "recruiter"
+                    ? "/recruiter/dashboard"
+                    : user?.role === "admin"
+                    ? "/admin/dashboard"
+                    : "/candidate/dashboard"
+                }
                 className="flex items-center gap-3 rounded-lg px-3 py-2 transition hover:bg-slate-50"
               >
                 <div className="flex h-9 w-9 items-center justify-center rounded-full bg-blue-100 text-blue-600">
@@ -140,29 +108,24 @@ export default function Navbar() {
                   </p>
 
                   <p className="text-xs capitalize text-slate-500">
-                    {role || "candidate"}
+                    {user?.role || "job seeker"}
                   </p>
                 </div>
               </Link>
 
-              {/* =================================================
-                  LOGOUT
-              ================================================== */}
+              {/* Logout */}
               <button
                 type="button"
                 onClick={handleLogout}
                 className="flex items-center gap-2 rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-red-300 hover:bg-red-50 hover:text-red-600"
               >
                 <FiLogOut size={17} />
-
                 Logout
               </button>
             </>
           ) : (
             <>
-              {/* =================================================
-                  LOGIN
-              ================================================== */}
+              {/* Login */}
               <Link
                 to="/login"
                 className="rounded-lg px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100"
@@ -170,9 +133,7 @@ export default function Navbar() {
                 Login
               </Link>
 
-              {/* =================================================
-                  REGISTER
-              ================================================== */}
+              {/* Register */}
               <Link
                 to="/register"
                 className="rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700"
@@ -184,15 +145,12 @@ export default function Navbar() {
 
         </div>
 
-        {/* =====================================================
-            MOBILE MENU BUTTON
-        ====================================================== */}
+        {/* Mobile button */}
         <button
           type="button"
           onClick={() => setMenuOpen(!menuOpen)}
           className="rounded-lg p-2 text-slate-700 md:hidden"
           aria-label="Toggle menu"
-          aria-expanded={menuOpen}
         >
           {menuOpen ? (
             <FiX size={24} />
@@ -202,17 +160,12 @@ export default function Navbar() {
         </button>
       </div>
 
-      {/* =======================================================
-          MOBILE MENU
-      ======================================================== */}
+      {/* Mobile menu */}
       {menuOpen && (
         <div className="border-t border-slate-200 bg-white px-6 py-5 md:hidden">
 
           <div className="flex flex-col gap-4">
 
-            {/* =================================================
-                FIND JOBS
-            ================================================== */}
             <Link
               to="/jobs"
               onClick={closeMenu}
@@ -221,9 +174,6 @@ export default function Navbar() {
               Find Jobs
             </Link>
 
-            {/* =================================================
-                COMPANIES
-            ================================================== */}
             <Link
               to="/companies"
               onClick={closeMenu}
@@ -232,9 +182,6 @@ export default function Navbar() {
               Companies
             </Link>
 
-            {/* =================================================
-                PRICING
-            ================================================== */}
             <Link
               to="/pricing"
               onClick={closeMenu}
@@ -243,9 +190,6 @@ export default function Navbar() {
               Pricing
             </Link>
 
-            {/* =================================================
-                ABOUT
-            ================================================== */}
             <Link
               to="/about"
               onClick={closeMenu}
@@ -259,11 +203,15 @@ export default function Navbar() {
               {isAuthenticated ? (
                 <div className="space-y-4">
 
-                  {/* =================================================
-                      MOBILE USER / DASHBOARD
-                  ================================================== */}
+                  {/* Mobile User */}
                   <Link
-                    to={dashboardPath}
+                    to={
+                      user?.role === "recruiter"
+                        ? "/recruiter/dashboard"
+                        : user?.role === "admin"
+                        ? "/admin/dashboard"
+                        : "/candidate/dashboard"
+                    }
                     onClick={closeMenu}
                     className="flex items-center gap-3 rounded-xl bg-slate-50 p-4"
                   >
@@ -277,21 +225,18 @@ export default function Navbar() {
                       </p>
 
                       <p className="text-xs capitalize text-slate-500">
-                        {role || "candidate"}
+                        {user?.role || "job seeker"}
                       </p>
                     </div>
                   </Link>
 
-                  {/* =================================================
-                      MOBILE LOGOUT
-                  ================================================== */}
+                  {/* Mobile Logout */}
                   <button
                     type="button"
                     onClick={handleLogout}
                     className="flex w-full items-center justify-center gap-2 rounded-lg border border-red-200 px-4 py-3 text-sm font-semibold text-red-600 transition hover:bg-red-50"
                   >
                     <FiLogOut size={17} />
-
                     Logout
                   </button>
 
@@ -299,9 +244,6 @@ export default function Navbar() {
               ) : (
                 <div className="flex gap-3">
 
-                  {/* =================================================
-                      MOBILE LOGIN
-                  ================================================== */}
                   <Link
                     to="/login"
                     onClick={closeMenu}
@@ -310,9 +252,6 @@ export default function Navbar() {
                     Login
                   </Link>
 
-                  {/* =================================================
-                      MOBILE REGISTER
-                  ================================================== */}
                   <Link
                     to="/register"
                     onClick={closeMenu}

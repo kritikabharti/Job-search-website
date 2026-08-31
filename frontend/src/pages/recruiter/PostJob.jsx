@@ -21,8 +21,8 @@ export default function PostJob() {
     title: "",
     company: "",
     location: "",
-    jobType: "full-time",
-    workplace: "onsite",
+    jobType: "Full-time",
+    workplace: "On-site",
     experience: "",
     salaryMin: "",
     salaryMax: "",
@@ -115,6 +115,17 @@ export default function PostJob() {
         });
 
       const data = response.data;
+
+      if (response.status === 401 || response.status === 403) {
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        navigate("/login");
+        return;
+      }
+
+      if (!response.data?.success) {
+        throw new Error(data.message || "Unable to create job.");
+      }
 
       setSuccess(data.message || "Job posted successfully.");
 
@@ -298,11 +309,11 @@ export default function PostJob() {
                   onChange={handleChange}
                   className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                 >
-                  <option value="full-time">Full-time</option>
-                  <option value="part-time">Part-time</option>
+                  <option value="Full-time">Full-time</option>
+                  <option value="Part-time">Part-time</option>
                   <option value="Contract">Contract</option>
-                  <option value="internship">Internship</option>
-                  <option value="freelance">Freelance</option>
+                  <option value="Internship">Internship</option>
+                  <option value="Temporary">Temporary</option>
                 </select>
               </div>
 
@@ -318,9 +329,9 @@ export default function PostJob() {
                   onChange={handleChange}
                   className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                 >
-                  <option value="onsite">On-site</option>
-                  <option value="remote">Remote</option>
-                  <option value="hybrid">Hybrid</option>
+                  <option value="On-site">On-site</option>
+                  <option value="Remote">Remote</option>
+                  <option value="Hybrid">Hybrid</option>
                 </select>
               </div>
 

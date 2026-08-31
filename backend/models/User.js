@@ -150,6 +150,24 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+
+    // ==========================
+    // RECRUITER RESUME ACCESS
+    // ==========================
+    // Every recruiter receives 10 free candidate-resume downloads.
+    // After the free allowance is exhausted, one credit is consumed
+    // for each new candidate application resume downloaded.
+    resumeFreeDownloadsUsed: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+
+    resumeCredits: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
   },
   {
     timestamps: true,

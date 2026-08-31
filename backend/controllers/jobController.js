@@ -2,37 +2,11 @@ import mongoose from "mongoose";
 import Job from "../models/Job.js";
 import Company from "../models/Company.js";
 import User from "../models/User.js";
+import Application from "../models/Application.js";
 
 // =====================================================
 // CREATE JOB
 // =====================================================
-
-const normalizeWorkMode = (value) => {
-  const normalized = String(value || "onsite").toLowerCase().trim();
-  const map = {
-    remote: "remote",
-    hybrid: "hybrid",
-    onsite: "onsite",
-    "on-site": "onsite",
-    "on site": "onsite",
-  };
-  return map[normalized] || "onsite";
-};
-
-const normalizeJobType = (value) => {
-  const normalized = String(value || "full-time").toLowerCase().trim();
-  const map = {
-    "full-time": "full-time",
-    "full time": "full-time",
-    "part-time": "part-time",
-    "part time": "part-time",
-    contract: "contract",
-    internship: "internship",
-    freelance: "freelance",
-    temporary: "contract",
-  };
-  return map[normalized] || "full-time";
-};
 
 export const createJob = async (req, res) => {
   try {
@@ -85,30 +59,29 @@ export const createJob = async (req, res) => {
       });
     }
 
+    if (!mongoose.Types.ObjectId.isValid(company)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid company ID.",
+      });
+    }
+
     let companyDoc = null;
 
-    // Accept either a Company ObjectId or the company name used by the
-    // existing PostJob form.
     if (mongoose.Types.ObjectId.isValid(company)) {
-      companyDoc = await Company.findById(company);
+      companyDoc = await Company.findOne({ _id: company, recruiter: recruiterId });
+    } else {
+      const companyName = String(company).trim();
+      if (companyName) {
+        companyDoc = await Company.findOne({ recruiter: recruiterId, name: companyName });
+        if (!companyDoc) {
+          companyDoc = await Company.create({ recruiter: recruiterId, name: companyName });
+        }
+      }
     }
 
     if (!companyDoc) {
-      const escapedName = String(company).trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-      companyDoc = await Company.findOne({
-        recruiter: recruiterId,
-        name: { $regex: `^${escapedName}$`, $options: "i" },
-      });
-    }
-
-    // If the recruiter has typed a new company name, create it automatically.
-    if (!companyDoc) {
-      companyDoc = await Company.create({
-        recruiter: recruiterId,
-        name: String(company).trim(),
-        location: location?.trim() || "",
-        isActive: true,
-      });
+      return res.status(404).json({ success: false, message: "Company not found or could not be created." });
     }
 
     if (!title?.trim()) {
@@ -171,8 +144,8 @@ export const createJob = async (req, res) => {
       description: description.trim(),
       location: location.trim(),
 
-      workMode: normalizeWorkMode(workMode),
-      jobType: normalizeJobType(jobType),
+      workMode: ({ Remote: "remote", Hybrid: "hybrid", "On-site": "onsite", onsite: "onsite", remote: "remote", hybrid: "hybrid" })[workMode] || "onsite",
+      jobType: ({ "Full-time": "full-time", "Part-time": "part-time", Contract: "contract", Internship: "internship", Freelance: "freelance", "full-time": "full-time", "part-time": "part-time", contract: "contract", internship: "internship", freelance: "freelance" })[jobType] || "full-time",
 
       experience: experience?.trim() || "",
 
@@ -193,22 +166,28 @@ export const createJob = async (req, res) => {
       salaryCurrency: salaryCurrency || "INR",
 
       skills: Array.isArray(skills)
-        ? skills.map((skill) => String(skill).trim()).filter(Boolean)
+        ? skills
+            .map((skill) => String(skill).trim())
+            .filter(Boolean)
         : typeof skills === "string"
-        ? skills.split(",").map((skill) => skill.trim()).filter(Boolean)
-        : [],
+          ? skills.split(",").map((skill) => skill.trim()).filter(Boolean)
+          : [],
 
       requirements: Array.isArray(requirements)
-        ? requirements.map((item) => String(item).trim()).filter(Boolean)
+        ? requirements
+            .map((item) => String(item).trim())
+            .filter(Boolean)
         : typeof requirements === "string"
-        ? requirements.split("\n").map((item) => item.trim()).filter(Boolean)
-        : [],
+          ? requirements.split("\n").map((item) => item.trim()).filter(Boolean)
+          : [],
 
       responsibilities: Array.isArray(responsibilities)
-        ? responsibilities.map((item) => String(item).trim()).filter(Boolean)
+        ? responsibilities
+            .map((item) => String(item).trim())
+            .filter(Boolean)
         : typeof responsibilities === "string"
-        ? responsibilities.split("\n").map((item) => item.trim()).filter(Boolean)
-        : [],
+          ? responsibilities.split("\n").map((item) => item.trim()).filter(Boolean)
+          : [],
 
       status: "active",
 
@@ -233,6 +212,206 @@ export const createJob = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Unable to create job.",
+      error:
+        process.env.NODE_ENV === "development"
+          ? error.message
+          : undefined,
+    });
+  }
+};
+
+// =====================================================
+// GET RECRUITER DASHBOARD
+// =====================================================
+
+// =====================================================
+// GET RECRUITER DASHBOARD
+// =====================================================
+
+export const getRecruiterDashboard = async (req, res) => {
+  try {
+    const recruiterId = req.user?._id || req.user?.id;
+
+    if (!recruiterId) {
+      return res.status(401).json({
+        success: false,
+        message: "Authentication required.",
+      });
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(recruiterId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid recruiter ID.",
+      });
+    }
+
+    // ===================================================
+    // GET RECRUITER
+    // ===================================================
+
+    const recruiter = await User.findById(recruiterId).select(
+      "_id name email role resumeFreeDownloadsUsed resumeCredits"
+    );
+
+    if (!recruiter) {
+      return res.status(404).json({
+        success: false,
+        message: "Recruiter not found.",
+      });
+    }
+
+    if (recruiter.role !== "recruiter") {
+      return res.status(403).json({
+        success: false,
+        message: "Only recruiters can access this dashboard.",
+      });
+    }
+
+    // ===================================================
+    // GET RECRUITER JOBS
+    // ===================================================
+
+    const recruiterJobs = await Job.find({
+      recruiter: recruiterId,
+    })
+      .select(
+        "_id title status views applicationsCount applicationDeadline createdAt company"
+      )
+      .populate("company")
+      .sort({ createdAt: -1 })
+      .lean();
+
+    const jobIds = recruiterJobs.map((job) => job._id);
+
+    // ===================================================
+    // JOB STATISTICS
+    // ===================================================
+
+    const totalJobs = recruiterJobs.length;
+
+    const activeJobs = recruiterJobs.filter(
+      (job) => job.status === "active"
+    ).length;
+
+    const closedJobs = recruiterJobs.filter(
+      (job) => job.status === "closed"
+    ).length;
+
+    const totalViews = recruiterJobs.reduce(
+      (total, job) => total + Number(job.views || 0),
+      0
+    );
+
+    // ===================================================
+    // APPLICATION STATISTICS
+    // ===================================================
+
+    let totalApplications = 0;
+    let interviews = 0;
+    let hired = 0;
+
+    if (jobIds.length > 0) {
+      [
+        totalApplications,
+        interviews,
+        hired,
+      ] = await Promise.all([
+        Application.countDocuments({
+          job: { $in: jobIds },
+        }),
+
+        Application.countDocuments({
+          job: { $in: jobIds },
+          status: {
+            $in: [
+              "interview",
+              "interview scheduled",
+            ],
+          },
+        }),
+
+        Application.countDocuments({
+          job: { $in: jobIds },
+          status: "accepted",
+        }),
+      ]);
+    }
+
+    // ===================================================
+    // RECENT APPLICATIONS
+    // ===================================================
+
+    let recentApplications = [];
+
+    if (jobIds.length > 0) {
+      recentApplications = await Application.find({
+        job: { $in: jobIds },
+      })
+        .populate({
+          path: "candidate",
+          select: "_id name email phone resume profileImage headline location skills education experience linkedin portfolio",
+        })
+        .populate({
+          path: "job",
+          select: "_id title",
+        })
+        .sort({ createdAt: -1 })
+        .limit(5)
+        .lean();
+    }
+
+    // ===================================================
+    // RESPONSE
+    // ===================================================
+
+    return res.status(200).json({
+      success: true,
+
+      recruiter: {
+        id: recruiter._id,
+        name: recruiter.name,
+        email: recruiter.email,
+        role: recruiter.role,
+        resumeFreeDownloadsUsed: recruiter.resumeFreeDownloadsUsed || 0,
+        resumeFreeDownloadsRemaining: Math.max(0, 10 - (recruiter.resumeFreeDownloadsUsed || 0)),
+        resumeCredits: recruiter.resumeCredits || 0,
+      },
+
+      statistics: {
+        totalJobs,
+        activeJobs,
+        closedJobs,
+        totalApplications,
+        totalViews,
+
+        interviews,
+        hired,
+      },
+
+      resumeAccess: {
+        freeDownloadsTotal: 10,
+        freeDownloadsUsed: recruiter.resumeFreeDownloadsUsed || 0,
+        freeDownloadsRemaining: Math.max(0, 10 - (recruiter.resumeFreeDownloadsUsed || 0)),
+        credits: recruiter.resumeCredits || 0,
+      },
+
+      // Keep this because other recruiter pages
+      // may already use recentJobs.
+      recentJobs: recruiterJobs,
+
+      // Used by RecruiterDashboard.jsx
+      recentApplications,
+    });
+  } catch (error) {
+    console.error(
+      "Get recruiter dashboard error:",
+      error
+    );
+
+    return res.status(500).json({
+      success: false,
+      message: "Unable to load recruiter dashboard.",
       error:
         process.env.NODE_ENV === "development"
           ? error.message
@@ -588,89 +767,49 @@ export const deleteJob = async (req, res) => {
   }
 };
 // =====================================================
-// PUBLIC ACTIVE JOBS
+// PUBLIC JOB LIST / DETAILS
 // =====================================================
 
 export const getPublicJobs = async (req, res) => {
   try {
-    const jobs = await Job.find({
-      status: "active",
-      $or: [
-        { applicationDeadline: null },
-        { applicationDeadline: { $gte: new Date() } },
-      ],
-    })
+    const query = { status: "active" };
+    if (req.query.search) {
+      query.$or = [
+        { title: { $regex: req.query.search, $options: "i" } },
+        { location: { $regex: req.query.search, $options: "i" } },
+      ];
+    }
+    if (req.query.location) query.location = { $regex: req.query.location, $options: "i" };
+    if (req.query.jobType) query.jobType = req.query.jobType;
+    if (req.query.workMode) query.workMode = req.query.workMode;
+
+    const jobs = await Job.find(query)
       .populate("company")
       .populate("recruiter", "name email")
       .sort({ createdAt: -1 });
 
-    return res.status(200).json({
-      success: true,
-      count: jobs.length,
-      jobs,
-    });
+    res.json({ success: true, jobs, count: jobs.length });
   } catch (error) {
     console.error("Get public jobs error:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Unable to load jobs.",
-    });
+    res.status(500).json({ success: false, message: "Unable to load jobs." });
   }
 };
 
-// =====================================================
-// PUBLIC SINGLE ACTIVE JOB
-// =====================================================
-
 export const getPublicJobById = async (req, res) => {
   try {
-    const { id } = req.params;
-
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid job ID.",
-      });
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ success: false, message: "Invalid job ID." });
     }
-
-    const job = await Job.findOne({
-      _id: id,
-      status: "active",
-    })
+    const job = await Job.findOne({ _id: req.params.id, status: "active" })
       .populate("company")
       .populate("recruiter", "name email");
+    if (!job) return res.status(404).json({ success: false, message: "Job not found." });
 
-    if (!job) {
-      return res.status(404).json({
-        success: false,
-        message: "Job not found or no longer available.",
-      });
-    }
-
-    if (
-      job.applicationDeadline &&
-      new Date() > new Date(job.applicationDeadline)
-    ) {
-      return res.status(404).json({
-        success: false,
-        message: "Applications for this job are closed.",
-      });
-    }
-
-    // Increment views without making the page wait for it.
-    await Job.findByIdAndUpdate(id, {
-      $inc: { views: 1 },
-    });
-
-    return res.status(200).json({
-      success: true,
-      job,
-    });
+    await Job.findByIdAndUpdate(job._id, { $inc: { views: 1 } });
+    job.views += 1;
+    res.json({ success: true, job });
   } catch (error) {
     console.error("Get public job error:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Unable to load job.",
-    });
+    res.status(500).json({ success: false, message: "Unable to load job." });
   }
 };

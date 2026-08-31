@@ -1,27 +1,24 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import api from "../../services/api";
+
 import {
   FiArrowLeft,
   FiBriefcase,
   FiCalendar,
   FiCheck,
+  FiDownload,
   FiClock,
   FiFileText,
   FiMail,
   FiRefreshCw,
   FiSearch,
   FiUser,
+  FiUsers,
   FiX,
 } from "react-icons/fi";
 
-const STATUS_OPTIONS = [
-  "pending",
-  "reviewing",
-  "interview",
-  "accepted",
-  "rejected",
-];
+const STATUS_OPTIONS = ["pending", "reviewing", "interview", "accepted", "rejected"];
 
 export default function RecruiterApplications() {
   const navigate = useNavigate();
@@ -41,6 +38,15 @@ export default function RecruiterApplications() {
 
   const [interviewDate, setInterviewDate] = useState("");
   const [notes, setNotes] = useState("");
+
+  const [resumeAccess, setResumeAccess] = useState({
+    freeDownloadsTotal: 10,
+    freeDownloadsUsed: 0,
+    freeDownloadsRemaining: 10,
+    credits: 0,
+  });
+
+  const [downloadingResume, setDownloadingResume] = useState("");
 
   // =====================================================
   // AUTHENTICATION
@@ -66,12 +72,27 @@ export default function RecruiterApplications() {
       setLoading(true);
       setError("");
 
-      const response = await api.get("/applications/recruiter");
-      const data = response.data;
+      const response = await api.get("/applications/recruiter/applications");
+      const data = response.data || {};
 
-      if (!data?.success) {
+      if (
+        response.status === 401 ||
+        response.status === 403
+      ) {
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+
+        navigate("/login", {
+          replace: true,
+        });
+
+        return;
+      }
+
+      if (!data.success) {
         throw new Error(
-          data?.message || "Unable to load applications."
+          data.message ||
+            "Unable to load applications."
         );
       }
 
@@ -80,6 +101,13 @@ export default function RecruiterApplications() {
           ? data.applications
           : []
       );
+
+      if (data.resumeAccess) {
+        setResumeAccess((previous) => ({
+          ...previous,
+          ...data.resumeAccess,
+        }));
+      }
     } catch (err) {
       console.error(
         "Recruiter applications error:",
@@ -302,19 +330,33 @@ export default function RecruiterApplications() {
       setError("");
 
       const response = await api.patch(
-        `/applications/recruiter/${selectedApplication._id}/status`,
-        {
-          status,
-          interviewDate: interviewDate || null,
-          notes,
-        }
+        `/applications/recruiter/applications/${selectedApplication._id}/status`,
+        { status, interviewDate: interviewDate || null, notes }
       );
+      const data = response.data || {};
 
-      const data = response.data;
+      if (
+        response.status === 401 ||
+        response.status === 403
+      ) {
+        localStorage.removeItem(
+          "token"
+        );
+        localStorage.removeItem(
+          "user"
+        );
 
-      if (!data?.success) {
+        navigate("/login", {
+          replace: true,
+        });
+
+        return;
+      }
+
+      if (!data.success) {
         throw new Error(
-          data?.message || "Unable to update application."
+          data.message ||
+            "Unable to update application."
         );
       }
 
@@ -339,6 +381,102 @@ export default function RecruiterApplications() {
   };
 
   // =====================================================
+  // DOWNLOAD RESUME
+  // =====================================================
+
+  const downloadResume = async (application) => {
+    const applicationId = application?._id;
+    if (!applicationId || downloadingResume) return;
+
+    const token = getToken();
+    if (!token) {
+      navigate("/login", { replace: true });
+      return;
+    }
+
+    try {
+      setDownloadingResume(applicationId);
+      setError("");
+
+      const response = await api.get(
+        `/applications/recruiter/applications/${applicationId}/resume/download`,
+        { responseType: "blob" }
+      );
+
+      if (response.status !== 200) {
+        throw new Error("Unable to download resume.");
+      }
+
+      const blob = response.data;
+      const contentType = response.headers?.["content-type"] || "";
+
+      if (contentType.includes("application/json")) {
+        const text = await blob.text();
+        const data = JSON.parse(text);
+        throw new Error(data.message || "Unable to download resume.");
+      }
+
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `${(application.candidate?.name || "candidate")
+        .replace(/[^a-zA-Z0-9_-]+/g, "-")}-resume`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+
+      const headers = response.headers || {};
+      const remaining = Number(headers["x-free-downloads-remaining"]);
+      const credits = Number(headers["x-resume-credits"]);
+
+      setResumeAccess((previous) => ({
+        ...previous,
+        freeDownloadsRemaining: Number.isFinite(remaining)
+          ? remaining
+          : previous.freeDownloadsRemaining,
+        freeDownloadsUsed: Number.isFinite(remaining)
+          ? Math.max(0, previous.freeDownloadsTotal - remaining)
+          : previous.freeDownloadsUsed,
+        credits: Number.isFinite(credits) ? credits : previous.credits,
+      }));
+
+      setApplications((previous) =>
+        previous.map((item) =>
+          item._id === applicationId
+            ? { ...item, resumeDownloaded: true, resumeDownloadedAt: new Date().toISOString() }
+            : item
+        )
+      );
+    } catch (err) {
+      let message = err.response?.data?.message || err.message || "Unable to download resume.";
+
+      // Axios returns an error body as a Blob when responseType is blob.
+      if (err.response?.data instanceof Blob) {
+        try {
+          const text = await err.response.data.text();
+          const data = JSON.parse(text);
+          message = data.message || message;
+          if (data.freeDownloadsRemaining !== undefined || data.credits !== undefined) {
+            setResumeAccess((previous) => ({
+              ...previous,
+              freeDownloadsRemaining: Number(data.freeDownloadsRemaining ?? previous.freeDownloadsRemaining),
+              credits: Number(data.credits ?? previous.credits),
+            }));
+          }
+        } catch {
+          // Keep the original error message when the response is not JSON.
+        }
+      }
+
+      console.error("Resume download error:", err);
+      setError(message);
+    } finally {
+      setDownloadingResume("");
+    }
+  };
+
+  // =====================================================
   // STATISTICS
   // =====================================================
 
@@ -347,17 +485,10 @@ export default function RecruiterApplications() {
       total: applications.length,
 
       applied:
-        applications.filter(
-          (a) =>
-            a.status === "applied"
-        ).length,
+        applications.filter((a) => a.status === "pending").length,
 
       shortlisted:
-        applications.filter(
-          (a) =>
-            a.status ===
-            "shortlisted"
-        ).length,
+        applications.filter((a) => a.status === "reviewing").length,
 
       interviews:
         applications.filter(
@@ -369,10 +500,7 @@ export default function RecruiterApplications() {
         ).length,
 
       hired:
-        applications.filter(
-          (a) =>
-            a.status === "hired"
-        ).length,
+        applications.filter((a) => a.status === "accepted").length,
     };
   }, [applications]);
 
@@ -488,6 +616,31 @@ export default function RecruiterApplications() {
           />
 
         </div>
+
+        {/* ================================================= */}
+        {/* RESUME ACCESS */}
+        {/* ================================================= */}
+
+        <section className="mb-6 rounded-2xl border border-blue-100 bg-blue-50/60 p-5">
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div>
+              <p className="text-sm font-bold text-slate-950">Candidate Resume Access</p>
+              <p className="mt-1 text-sm text-slate-600">
+                Your first 10 candidate resume downloads are free. After that, 1 credit is used for each new candidate resume.
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-3">
+              <div className="rounded-xl bg-white px-4 py-3 shadow-sm">
+                <p className="text-xs text-slate-500">Free remaining</p>
+                <p className="mt-1 text-lg font-bold text-blue-600">{resumeAccess.freeDownloadsRemaining}/10</p>
+              </div>
+              <div className="rounded-xl bg-white px-4 py-3 shadow-sm">
+                <p className="text-xs text-slate-500">Credits</p>
+                <p className="mt-1 text-lg font-bold text-slate-950">{resumeAccess.credits}</p>
+              </div>
+            </div>
+          </div>
+        </section>
 
         {/* ================================================= */}
         {/* FILTERS */}
@@ -821,25 +974,23 @@ export default function RecruiterApplications() {
                       </h3>
 
                       <p className="mt-1 text-sm text-slate-500">
-                        Candidate resume
+                        Candidate resume. Downloads use your free allowance first, then one credit per new candidate resume.
                       </p>
                     </div>
 
-                    <a
-                      href={
-                        selectedApplication
-                          .resume ||
-                        selectedApplication
-                          .candidate
-                          ?.resume
-                      }
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+                    <button
+                      type="button"
+                      onClick={() => downloadResume(selectedApplication)}
+                      disabled={downloadingResume === selectedApplication._id}
+                      className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
                     >
-                      <FiFileText />
-                      View Resume
-                    </a>
+                      {downloadingResume === selectedApplication._id ? (
+                        <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+                      ) : (
+                        <FiDownload />
+                      )}
+                      {downloadingResume === selectedApplication._id ? "Downloading..." : selectedApplication.resumeDownloaded ? "Download Again" : "Download Resume"}
+                    </button>
 
                   </div>
 
@@ -1070,6 +1221,10 @@ function InfoItem({
 function formatStatus(status) {
   if (!status) {
     return "Applied";
+  }
+
+  if (status === "reviewing") {
+    return "Shortlisted";
   }
 
   return status

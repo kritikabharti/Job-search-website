@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import api from "../../services/api";
 import {
   FiBriefcase,
   FiChevronDown,
@@ -9,8 +10,6 @@ import {
   FiSearch,
   FiSliders,
 } from "react-icons/fi";
-
-import api from "../../services/api";
 
 export default function Jobs() {
   const [jobs, setJobs] = useState([]);
@@ -23,7 +22,9 @@ export default function Jobs() {
   const [workMode, setWorkMode] = useState("");
   const [experience, setExperience] = useState("");
 
-  const [savedJobs, setSavedJobs] = useState([]);
+  const [savedJobs, setSavedJobs] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("jobifySavedJobs") || "[]"); } catch { return []; }
+  });
 
   useEffect(() => {
     fetchJobs();
@@ -36,8 +37,8 @@ export default function Jobs() {
 
       const response = await api.get("/jobs");
       const data = response.data;
-
-      setJobs(data.jobs || data.data || []);
+      if (!data?.success) throw new Error(data?.message || "Failed to fetch jobs");
+      setJobs(data.jobs || []);
     } catch (err) {
       console.error("Fetch jobs error:", err);
       setError("Unable to load jobs. Please try again.");
@@ -47,11 +48,11 @@ export default function Jobs() {
   };
 
   const toggleSave = (jobId) => {
-    setSavedJobs((current) =>
-      current.includes(jobId)
-        ? current.filter((id) => id !== jobId)
-        : [...current, jobId]
-    );
+    setSavedJobs((current) => {
+      const next = current.includes(jobId) ? current.filter((id) => id !== jobId) : [...current, jobId];
+      localStorage.setItem("jobifySavedJobs", JSON.stringify(next));
+      return next;
+    });
   };
 
   const filteredJobs = jobs.filter((job) => {

@@ -7,8 +7,6 @@ import {
   FiRefreshCw,
 } from "react-icons/fi";
 
-import api from "../../services/api";
-
 export default function VerifyOTP() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -107,15 +105,24 @@ export default function VerifyOTP() {
     setMessage("");
 
     try {
-      const response = await api.post("/auth/verify-otp", {
-        email,
-        otp: otpValue,
-      });
+      const response = await fetch(
+        "http://localhost:5000/api/auth/verify-otp",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            email,
+            otp: otpValue,
+          }),
+        }
+      );
 
-      const data = response.data;
+      const data = await response.json();
 
-      if (!data?.success) {
-        throw new Error(data?.message || "OTP verification failed.");
+      if (!response.ok) {
+        throw new Error(data.message || "OTP verification failed.");
       }
 
       setMessage(data.message || "Email verified successfully.");
@@ -144,11 +151,23 @@ export default function VerifyOTP() {
     setMessage("");
 
     try {
-      const response = await api.post("/auth/resend-otp", { email });
-      const data = response.data;
+      const response = await fetch(
+        "http://localhost:5000/api/auth/resend-otp",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            email,
+          }),
+        }
+      );
 
-      if (!data?.success) {
-        throw new Error(data?.message || "Unable to resend OTP.");
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Unable to resend OTP.");
       }
 
       setMessage(data.message || "A new OTP has been sent.");

@@ -9,9 +9,11 @@ import {
 } from "react-icons/fi";
 
 import api from "../../services/api";
+import { useAuth } from "../../context/AuthContext";
 
 export default function Login() {
   const navigate = useNavigate();
+  const { login } = useAuth();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -64,10 +66,8 @@ export default function Login() {
       }
 
       if (data.user) {
-        localStorage.setItem(
-          "user",
-          JSON.stringify(data.user)
-        );
+        localStorage.setItem("user", JSON.stringify(data.user));
+        login(data.token, data.user);
       }
 
       /*
@@ -95,14 +95,18 @@ export default function Login() {
        * Redirect according to user role
        */
 
-      if (data.user?.role === "recruiter") {
+      const redirectTo = window.history.state?.usr?.redirectTo;
+      if (redirectTo && redirectTo.startsWith("/")) {
+        navigate(redirectTo);
+      } else if (data.user?.role === "recruiter") {
         navigate("/recruiter/dashboard");
       } else if (
         data.user?.role === "admin"
       ) {
         navigate("/admin/dashboard");
       } else {
-        navigate("/jobs");
+        // Jobseekers/candidates must land on their dashboard.
+        navigate("/candidate/dashboard");
       }
 
     } catch (err) {

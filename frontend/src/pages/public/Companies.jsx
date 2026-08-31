@@ -6,7 +6,6 @@ import {
   FiSearch,
   FiUsers,
 } from "react-icons/fi";
-
 import api from "../../services/api";
 
 export default function Companies() {
@@ -26,6 +25,7 @@ export default function Companies() {
 
       const response = await api.get("/companies");
       const data = response.data;
+      if (!data?.success) throw new Error(data?.message || "Failed to fetch companies");
 
       setCompanies(data.companies || data.data || []);
     } catch (err) {

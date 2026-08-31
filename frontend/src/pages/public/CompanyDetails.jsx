@@ -7,7 +7,6 @@ import {
   FiMapPin,
   FiUsers,
 } from "react-icons/fi";
-
 import api from "../../services/api";
 
 export default function CompanyDetails() {
@@ -34,6 +33,7 @@ export default function CompanyDetails() {
 
       const response = await api.get(`/companies/${id}`);
       const data = response.data;
+      if (!data?.success) throw new Error(data?.message || "Company not found");
 
       const companyData = data.company || data.data;
 

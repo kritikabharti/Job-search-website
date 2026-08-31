@@ -29,7 +29,7 @@ import { useAuth } from "../../context/AuthContext";
 
 export default function CandidateDashboard() {
   const navigate = useNavigate();
-  const { user, isAuthenticated, logout } = useAuth();
+  const { user, isAuthenticated } = useAuth();
 
   const profileImageRef = useRef(null);
   const resumeRef = useRef(null);
@@ -103,7 +103,7 @@ export default function CandidateDashboard() {
 
       const response =
         await axiosClient.get(
-          "/profile/me"
+          `/profile/me?_=${Date.now()}`
         );
 
       const data =
@@ -630,7 +630,7 @@ export default function CandidateDashboard() {
 
             <button
               type="button"
-              onClick={openEditProfile}
+              onClick={() => navigate("/candidate/profile")}
               className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700"
             >
               <FiEdit2 size={17} />
@@ -777,7 +777,7 @@ export default function CandidateDashboard() {
               action={
                 <button
                   type="button"
-                  onClick={openEditProfile}
+                  onClick={() => navigate("/candidate/profile?section=about")}
                   className="text-sm font-semibold text-blue-600 hover:text-blue-700"
                 >
                   Edit
@@ -800,7 +800,7 @@ export default function CandidateDashboard() {
               action={
                 <button
                   type="button"
-                  onClick={openEditProfile}
+                  onClick={() => navigate("/candidate/profile?section=skills")}
                   className="text-sm font-semibold text-blue-600 hover:text-blue-700"
                 >
                   Edit
@@ -832,7 +832,7 @@ export default function CandidateDashboard() {
               action={
                 <button
                   type="button"
-                  onClick={openEditProfile}
+                  onClick={() => navigate("/candidate/profile?section=education")}
                   className="text-sm font-semibold text-blue-600 hover:text-blue-700"
                 >
                   Edit
@@ -855,7 +855,7 @@ export default function CandidateDashboard() {
               action={
                 <button
                   type="button"
-                  onClick={openEditProfile}
+                  onClick={() => navigate("/candidate/profile?section=experience")}
                   className="text-sm font-semibold text-blue-600 hover:text-blue-700"
                 >
                   Edit
@@ -878,7 +878,7 @@ export default function CandidateDashboard() {
               action={
                 <button
                   type="button"
-                  onClick={openEditProfile}
+                  onClick={() => navigate("/candidate/profile?section=resume")}
                   className="text-sm font-semibold text-blue-600 hover:text-blue-700"
                 >
                   Update
@@ -966,7 +966,7 @@ export default function CandidateDashboard() {
               action={
                 <button
                   type="button"
-                  onClick={openEditProfile}
+                  onClick={() => navigate("/candidate/profile?section=links")}
                   className="text-sm font-semibold text-blue-600 hover:text-blue-700"
                 >
                   Edit

@@ -44,7 +44,7 @@ export default function ViewApplications() {
       setError("");
 
       const response = await api.get(
-        "/applications/recruiter"
+        "/applications/recruiter/applications"
       );
 
       console.log(
@@ -97,7 +97,7 @@ export default function ViewApplications() {
       }
 
       const response = await api.get(
-        `/applications/recruiter/${application._id}`
+        `/applications/recruiter/applications/${application._id}`
       );
 
       if (response.data?.success) {
@@ -130,7 +130,7 @@ export default function ViewApplications() {
   ) => {
     try {
       const response = await api.patch(
-        `/applications/recruiter/${applicationId}/status`,
+        `/applications/recruiter/applications/${applicationId}/status`,
         {
           status,
         }

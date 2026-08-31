@@ -8,8 +8,9 @@ import jobRoutes from "./routes/jobRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
 import applicationRoutes from "./routes/applicationRoutes.js";
 import profileRoutes from "./routes/profileRoutes.js";
-import recruiterRoutes from "./routes/recruiterRoutes.js";
 import companyRoutes from "./routes/companyRoutes.js";
+import recruiterProfileRoutes from "./routes/recruiterProfileRoutes.js";
+
 
 dotenv.config();
 
@@ -66,21 +67,26 @@ app.use("/api/auth", authRoutes);
 app.use("/api", jobRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/applications", applicationRoutes);
-app.use(
-  "/uploads",
-  express.static("uploads")
-);
-
-app.use(
-  "/api",
-  profileRoutes
-);
-app.use("/api/recruiter", recruiterRoutes);
+app.use("/uploads", express.static("uploads"));
+app.use("/api/profile", profileRoutes);
 app.use("/api/companies", companyRoutes);
+app.use("/api/recruiter", recruiterProfileRoutes);
 
 // ===============================
 // 404
 // ===============================
+
+app.use((err, req, res, next) => {
+  if (err?.name === "MulterError") {
+    return res.status(400).json({ success: false, message: err.message || "File upload failed." });
+  }
+  if (err) {
+    console.error("Unhandled API error:", err);
+    return res.status(400).json({ success: false, message: err.message || "Request failed." });
+  }
+  next();
+});
+
 app.use((req, res) => {
   res.status(404).json({
     success: false,

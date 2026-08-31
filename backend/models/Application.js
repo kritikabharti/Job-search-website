@@ -50,6 +50,20 @@ const applicationSchema = new mongoose.Schema(
       default: "",
     },
 
+    // Whether this candidate application has already consumed a
+    // recruiter resume-download allowance/credit. This prevents
+    // repeatedly downloading the same application from consuming
+    // multiple downloads.
+    resumeDownloaded: {
+      type: Boolean,
+      default: false,
+    },
+
+    resumeDownloadedAt: {
+      type: Date,
+      default: null,
+    },
+
     // Optional recruiter notes
     recruiterNotes: {
       type: String,

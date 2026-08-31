@@ -10,8 +10,6 @@ import {
   FiBriefcase,
 } from "react-icons/fi";
 
-import api from "../../services/api";
-
 export default function Register() {
   const navigate = useNavigate();
 
@@ -64,17 +62,46 @@ export default function Register() {
     try {
       setLoading(true);
 
-      const response = await api.post("/auth/register", {
+      const response = await fetch(
+        "http://localhost:5000/api/auth/register",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
             name: name.trim(),
             email: email.trim().toLowerCase(),
             password,
             role,
-          });
+          }),
+        }
+      );
 
-      const data = response.data;
+      /*
+       * Prevent:
+       * Unexpected token '<', "<!doctype "... is not valid JSON
+       *
+       * because the server might return HTML when the API URL is wrong.
+       */
+      const contentType = response.headers.get("content-type");
 
-      if (!data?.success) {
-        setError(data?.message || "Registration failed.");
+      let data;
+
+      if (contentType && contentType.includes("application/json")) {
+        data = await response.json();
+      } else {
+        const text = await response.text();
+
+        console.error("Server returned non-JSON response:", text);
+
+        throw new Error(
+          "Server returned an invalid response. Make sure the backend is running on http://localhost:5000."
+        );
+      }
+
+      if (!response.ok) {
+        setError(data.message || "Registration failed.");
         return;
       }
 

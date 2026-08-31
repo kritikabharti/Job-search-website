@@ -6,11 +6,9 @@ import {
   FiUserCheck,
   FiFileText,
   FiCheckCircle,
-  FiClock,
   FiArrowRight,
   FiLogOut,
   FiShield,
-  FiHome,
 } from "react-icons/fi";
 
 import api from "../../services/api";
@@ -345,7 +343,7 @@ export default function AdminDashboard() {
 
             <AdminAction
               to="/admin/companies"
-              icon={<FiBuilding size={22} />}
+              icon={<FiBriefcase size={22} />}
               title="Manage Companies"
               description="View and manage registered companies."
             />

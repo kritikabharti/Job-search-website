@@ -2,8 +2,6 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { FiArrowLeft, FiMail, FiCheckCircle } from "react-icons/fi";
 
-import api from "../../services/api";
-
 export default function ForgotPassword() {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
@@ -18,11 +16,25 @@ export default function ForgotPassword() {
     setError("");
 
     try {
-      const response = await api.post("/auth/forgot-password", { email });
-      const data = response.data;
+      const response = await fetch(
+        "http://localhost:5000/api/auth/forgot-password",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            email,
+          }),
+        }
+      );
 
-      if (!data?.success) {
-        throw new Error(data?.message || "Unable to send reset link.");
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.message || "Unable to send reset link."
+        );
       }
 
       setMessage(

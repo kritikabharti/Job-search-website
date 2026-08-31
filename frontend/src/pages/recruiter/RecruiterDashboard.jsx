@@ -6,6 +6,7 @@ import {
   FiCalendar,
   FiCheckCircle,
   FiClock,
+  FiDownload,
   FiFileText,
   FiPlus,
   FiSettings,
@@ -27,6 +28,13 @@ export default function RecruiterDashboard() {
   });
 
   const [recentApplications, setRecentApplications] = useState([]);
+
+  const [resumeAccess, setResumeAccess] = useState({
+    freeDownloadsTotal: 10,
+    freeDownloadsUsed: 0,
+    freeDownloadsRemaining: 10,
+    credits: 0,
+  });
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -99,7 +107,11 @@ export default function RecruiterDashboard() {
          * http://localhost:5000/api/recruiter/dashboard
          */
 
-        const response = await api.get("/recruiter/dashboard");
+        const response = await api.get("/recruiter/dashboard", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
 
         const data = response.data;
 
@@ -156,6 +168,13 @@ export default function RecruiterDashboard() {
             ? data.recentApplications
             : []
         );
+
+        if (data.resumeAccess) {
+          setResumeAccess((previous) => ({
+            ...previous,
+            ...data.resumeAccess,
+          }));
+        }
 
         // =================================================
         // RECRUITER INFORMATION
@@ -409,6 +428,36 @@ export default function RecruiterDashboard() {
             </div>
           ))}
         </div>
+
+        {/* ================================================= */}
+        {/* RESUME ACCESS */}
+        {/* ================================================= */}
+
+        <section className="mt-8 rounded-2xl border border-blue-100 bg-blue-50/60 p-6">
+          <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
+            <div className="flex items-start gap-4">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white text-blue-600 shadow-sm">
+                <FiDownload size={20} />
+              </div>
+              <div>
+                <h2 className="font-bold text-slate-950">Candidate Resume Downloads</h2>
+                <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-600">
+                  You have 10 free candidate resume downloads. Once those are used, each new candidate resume download consumes 1 credit.
+                </p>
+              </div>
+            </div>
+            <div className="flex shrink-0 gap-3">
+              <div className="rounded-xl bg-white px-4 py-3 text-center shadow-sm">
+                <p className="text-xs text-slate-500">Free remaining</p>
+                <p className="mt-1 text-xl font-bold text-blue-600">{resumeAccess.freeDownloadsRemaining}/10</p>
+              </div>
+              <div className="rounded-xl bg-white px-4 py-3 text-center shadow-sm">
+                <p className="text-xs text-slate-500">Credits</p>
+                <p className="mt-1 text-xl font-bold text-slate-950">{resumeAccess.credits}</p>
+              </div>
+            </div>
+          </div>
+        </section>
 
         {/* ================================================= */}
         {/* QUICK ACTIONS */}

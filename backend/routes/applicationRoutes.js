@@ -6,47 +6,61 @@ import {
   getApplicationById,
   updateApplicationStatus,
   getCandidateApplications,
+  downloadCandidateResume,
 } from "../controllers/applicationController.js";
 
-import { protect, authorize } from "../middleware/authMiddleware.js";
+import { protect } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
-// Candidate
+// =====================================================
+// CANDIDATE
+// =====================================================
+
+// Apply for a job
 router.post(
   "/jobs/:jobId/apply",
   protect,
-  authorize("jobseeker"),
   applyForJob
 );
 
+// Candidate's applications
 router.get(
   "/candidate/applications",
   protect,
-  authorize("jobseeker"),
   getCandidateApplications
 );
 
-// Recruiter
+// =====================================================
+// RECRUITER
+// =====================================================
+
+// All applications received by recruiter
 router.get(
   "/recruiter/applications",
   protect,
-  authorize("recruiter"),
   getRecruiterApplications
 );
 
+// Single application
 router.get(
   "/recruiter/applications/:id",
   protect,
-  authorize("recruiter"),
   getApplicationById
 );
 
+// Update application status
 router.patch(
   "/recruiter/applications/:id/status",
   protect,
-  authorize("recruiter"),
   updateApplicationStatus
+);
+
+// Download a candidate resume with the recruiter free-download/credit rules.
+router.get(
+  "/recruiter/applications/:id/resume/download",
+  protect,
+  downloadCandidateResume
 );
 
 export default router;

@@ -1,47 +1,57 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { FiArrowLeft, FiRefreshCw, FiSearch, FiTrash2 } from "react-icons/fi";
 import api from "../../services/api";
 
-export default function AdminResourcePage({ title, endpoint, collectionKey, columns }) {
+export default function AdminResourcePage({ title, endpoint, collectionKey, columns = [], allowDelete = false }) {
   const navigate = useNavigate();
-  const [items, setItems] = useState([]);
+  const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [search, setSearch] = useState("");
+  const [busy, setBusy] = useState("");
 
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const response = await api.get(endpoint);
-        if (!response.data?.success) throw new Error(response.data?.message || `Unable to load ${title.toLowerCase()}.`);
-        setItems(Array.isArray(response.data?.[collectionKey]) ? response.data[collectionKey] : []);
-      } catch (err) {
-        if (err.response?.status === 401 || err.response?.status === 403) {
-          navigate("/login", { replace: true });
-          return;
-        }
-        setError(err.response?.data?.message || err.message || "Unable to load data.");
-      } finally {
-        setLoading(false);
-      }
-    };
-    load();
-  }, [endpoint, collectionKey, navigate, title]);
+  const load = useCallback(async () => {
+    try {
+      setLoading(true); setError("");
+      const response = await api.get(endpoint);
+      if (!response.data?.success) throw new Error(response.data?.message || `Unable to load ${title}.`);
+      setRows(Array.isArray(response.data?.[collectionKey]) ? response.data[collectionKey] : []);
+    } catch (err) {
+      if ([401, 403].includes(err.response?.status)) { navigate("/login", { replace: true }); return; }
+      setError(err.response?.data?.message || err.message || `Unable to load ${title}.`);
+    } finally { setLoading(false); }
+  }, [endpoint, collectionKey, title, navigate]);
 
-  return (
-    <div className="min-h-screen bg-slate-50">
-      <main className="mx-auto max-w-7xl px-6 py-8 lg:px-8">
-        <Link to="/admin/dashboard" className="text-sm font-semibold text-blue-600 hover:text-blue-700">← Back to Dashboard</Link>
-        <div className="mt-5 flex items-center justify-between gap-4">
-          <div><p className="text-sm font-semibold text-blue-600">Admin</p><h1 className="text-3xl font-bold text-slate-950">{title}</h1></div>
-          <span className="rounded-full bg-white px-3 py-1 text-sm font-semibold text-slate-500 shadow-sm">{items.length} records</span>
-        </div>
-        {error && <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error}</div>}
-        <div className="mt-6 overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
-          {loading ? <div className="p-10 text-center text-slate-500">Loading {title.toLowerCase()}...</div> : items.length === 0 ? <div className="p-10 text-center text-slate-500">No records found.</div> : (
-            <table className="min-w-full text-left text-sm"><thead className="border-b border-slate-200 bg-slate-50"><tr>{columns.map((column) => <th key={column.key} className="px-5 py-3 font-semibold text-slate-600">{column.label}</th>)}</tr></thead><tbody className="divide-y divide-slate-100">{items.map((item) => <tr key={item._id} className="hover:bg-slate-50">{columns.map((column) => <td key={column.key} className="px-5 py-4 text-slate-700">{column.render ? column.render(item) : (item[column.key] ?? "—")}</td>)}</tr>)}</tbody></table>
-          )}
-        </div>
-      </main>
-    </div>
-  );
+  useEffect(() => { load(); }, [load]);
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return rows;
+    return rows.filter((row) => JSON.stringify(row).toLowerCase().includes(q));
+  }, [rows, search]);
+
+  const removeJob = async (row) => {
+    if (!row?._id || !window.confirm("Delete this job and its applications?")) return;
+    try { setBusy(row._id); await api.delete(`/admin/jobs/${row._id}`); await load(); }
+    catch (err) { setError(err.response?.data?.message || "Unable to delete job."); }
+    finally { setBusy(""); }
+  };
+
+  return <div className="min-h-screen bg-slate-50">
+    <main className="mx-auto max-w-7xl px-6 py-8 lg:px-8">
+      <Link to="/admin/dashboard" className="mb-5 inline-flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-blue-600"><FiArrowLeft /> Back to Dashboard</Link>
+      <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
+        <div><p className="text-sm font-semibold text-blue-600">Admin</p><h1 className="mt-1 text-3xl font-bold text-slate-950">{title}</h1><p className="mt-2 text-slate-500">Manage and review {title.toLowerCase()}.</p></div>
+        <button onClick={load} className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 hover:text-blue-600"><FiRefreshCw /> Refresh</button>
+      </div>
+      {error && <div className="mt-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
+      <section className="mt-6 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <div className="border-b border-slate-100 p-5"><div className="relative max-w-xl"><FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"/><input value={search} onChange={e=>setSearch(e.target.value)} placeholder={`Search ${title.toLowerCase()}...`} className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3 pl-10 pr-4 text-sm outline-none focus:border-blue-500 focus:bg-white"/></div></div>
+        <div className="overflow-x-auto"><table className="min-w-full text-left text-sm"><thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500"><tr>{columns.map(c=><th key={c.key} className="px-5 py-4 font-semibold">{c.label}</th>)}{allowDelete&&<th className="px-5 py-4">Action</th>}</tr></thead><tbody className="divide-y divide-slate-100">
+          {loading ? <tr><td colSpan={columns.length+(allowDelete?1:0)} className="px-5 py-12 text-center text-slate-500">Loading...</td></tr> : filtered.length===0 ? <tr><td colSpan={columns.length+(allowDelete?1:0)} className="px-5 py-12 text-center text-slate-500">No records found.</td></tr> : filtered.map(row=><tr key={row._id} className="hover:bg-slate-50">{columns.map(c=><td key={c.key} className="max-w-xs px-5 py-4 text-slate-700">{c.render ? c.render(row) : (row[c.key] ?? "—")}</td>)}{allowDelete&&<td className="px-5 py-4"><button disabled={busy===row._id} onClick={()=>removeJob(row)} className="inline-flex items-center gap-2 rounded-lg border border-red-200 px-3 py-2 text-xs font-semibold text-red-600 hover:bg-red-50 disabled:opacity-50"><FiTrash2/>{busy===row._id?"Deleting":"Delete"}</button></td>}</tr>)}</tbody></table></div>
+        <div className="border-t border-slate-100 px-5 py-4 text-sm text-slate-500">Showing {filtered.length} of {rows.length} records</div>
+      </section>
+    </main>
+  </div>;
 }
