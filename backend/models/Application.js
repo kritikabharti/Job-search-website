@@ -29,6 +29,7 @@ const applicationSchema = new mongoose.Schema(
       enum: [
         "pending",
         "reviewing",
+        "shortlisted",
         "interview",
         "accepted",
         "rejected",

@@ -23,9 +23,9 @@ const publicFileUrl = (req, filename) => {
     .replace(/^\/+/, "")
     .replace(/^uploads[\\/]/i, "");
 
-  return `${req.protocol}://${req.get(
-    "host"
-  )}/uploads/${encodeURIComponent(cleanFilename)}`;
+  const isResume = /\.(pdf|doc|docx)$/i.test(cleanFilename);
+  const route = isResume ? "resume" : "image";
+  return `${req.protocol}://${req.get("host")}/api/files/${route}/${encodeURIComponent(cleanFilename)}`;
 };
 
 /*

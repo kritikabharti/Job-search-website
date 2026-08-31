@@ -8,7 +8,6 @@ import {
   closeJob,
   publishJob,
   deleteJob,
-  getRecruiterDashboard,
   getPublicJobs,
   getPublicJobById,
 } from "../controllers/jobController.js";
@@ -21,15 +20,6 @@ const router = express.Router();
 router.get("/jobs", getPublicJobs);
 router.get("/jobs/:id", getPublicJobById);
 
-// =====================================================
-// RECRUITER DASHBOARD
-// =====================================================
-
-router.get(
-  "/recruiter/dashboard",
-  protect,
-  getRecruiterDashboard
-);
 
 // =====================================================
 // RECRUITER JOBS

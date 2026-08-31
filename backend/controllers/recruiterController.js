@@ -1,6 +1,14 @@
 import Job from "../models/Job.js";
 import Application from "../models/Application.js";
 import User from "../models/User.js";
+import { getCvAccessState } from "../services/cvAccessService.js";
+
+const publicFileUrl = (req, filename) => {
+  if (!filename) return "";
+  if (/^https?:\/\//i.test(String(filename))) return String(filename);
+  const clean = String(filename).replace(/^\/+/, "").replace(/^uploads[\\/]/i, "");
+  return `${req.protocol}://${req.get("host")}/api/files/image/${encodeURIComponent(clean)}`;
+};
 
 /**
  * GET /api/recruiter/dashboard
@@ -18,7 +26,7 @@ export const getRecruiterDashboard = async (req, res) => {
     }
 
     const recruiter = await User.findById(recruiterId)
-      .select("_id name email role phone company profileImage profilePicture avatar")
+      .select("_id name email role phone company profileImage profilePicture avatar resumeCredits freeCvCreditsUsed freeCvCreditPeriodStart")
       .lean();
 
     if (!recruiter) {
@@ -71,13 +79,14 @@ export const getRecruiterDashboard = async (req, res) => {
     const recentApplications = await Application.find({
       recruiter: recruiterId,
     })
-      .populate("candidate", "_id name email phone profileImage profilePicture avatar")
+      .populate("candidate", "_id name headline location skills profileImage isVerified")
       .populate("job", "_id title location company")
       .sort({ createdAt: -1 })
       .limit(5)
       .lean();
 
     const recentJobs = recruiterJobs.slice(0, 5);
+    const cvAccess = await getCvAccessState(recruiterId);
 
     return res.status(200).json({
       success: true,
@@ -115,6 +124,7 @@ export const getRecruiterDashboard = async (req, res) => {
       },
       recentJobs,
       recentApplications,
+      resumeAccess: { freeDownloadsTotal: cvAccess.freeTotal, freeDownloadsUsed: cvAccess.freeUsed, freeDownloadsRemaining: cvAccess.freeRemaining, credits: cvAccess.paidCredits, creditCost: cvAccess.creditCost },
     });
   } catch (error) {
     console.error("Get recruiter dashboard error:", error);
@@ -166,11 +176,7 @@ export const getRecruiterProfile = async (req, res) => {
       profile: {
         ...recruiter,
         id: recruiter._id,
-        profileImage:
-          recruiter.profileImage ||
-          recruiter.profilePicture ||
-          recruiter.avatar ||
-          "",
+        profileImage: publicFileUrl(req, recruiter.profileImage || recruiter.profilePicture || recruiter.avatar || ""),
       },
     });
   } catch (error) {
@@ -259,7 +265,7 @@ export const updateRecruiterProfile = async (req, res) => {
       profile: {
         ...saved,
         id: saved._id,
-        profileImage: saved.profileImage || "",
+        profileImage: publicFileUrl(req, saved.profileImage || ""),
       },
     });
   } catch (error) {

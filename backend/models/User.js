@@ -168,6 +168,19 @@ const userSchema = new mongoose.Schema(
       default: 0,
       min: 0,
     },
+
+    // Configurable monthly recruiter CV allowance. The server resets this
+    // lazily when a new calendar month is detected.
+    freeCvCreditsUsed: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+
+    freeCvCreditPeriodStart: {
+      type: Date,
+      default: null,
+    },
   },
   {
     timestamps: true,

@@ -3,16 +3,22 @@ import User from "../models/User.js";
 import Job from "../models/Job.js";
 import Company from "../models/Company.js";
 import Application from "../models/Application.js";
+import Payment from "../models/Payment.js";
+import ContentReport from "../models/ContentReport.js";
 
 const idIsValid = (id) => mongoose.Types.ObjectId.isValid(id);
 
 export const getAdminDashboard = async (req, res) => {
   try {
-    const [totalUsers, totalRecruiters, totalJobseekers, totalJobs, activeJobs, totalApplications, totalCompanies] = await Promise.all([
+    const [totalUsers, totalRecruiters, totalJobseekers, totalJobs, activeJobs, totalApplications, totalCompanies, activeUsers, openReports, revenueAgg, paidTransactions] = await Promise.all([
       User.countDocuments(), User.countDocuments({ role: "recruiter" }), User.countDocuments({ role: "jobseeker" }),
       Job.countDocuments(), Job.countDocuments({ status: "active" }), Application.countDocuments(), Company.countDocuments(),
+      User.countDocuments({ isActive: { $ne: false } }), ContentReport.countDocuments({ status: { $in: ["open", "reviewing"] } }),
+      Payment.aggregate([{ $match: { status: "paid" } }, { $group: { _id: null, revenue: { $sum: "$amount" } } }]),
+      Payment.countDocuments({ status: "paid" }),
     ]);
-    res.json({ success: true, dashboard: { totalUsers, totalRecruiters, totalJobseekers, totalJobs, activeJobs, totalApplications, totalCompanies } });
+    const revenue = revenueAgg[0]?.revenue || 0;
+    res.json({ success: true, dashboard: { totalUsers, totalRecruiters, totalJobseekers, totalJobs, activeJobs, totalApplications, totalCompanies, activeUsers, openReports, revenue, paidTransactions } });
   } catch (error) {
     console.error("Admin dashboard error:", error);
     res.status(500).json({ success: false, message: "Unable to load admin dashboard." });
@@ -79,7 +85,7 @@ export const updateAdminApplication = async (req, res) => {
   if (!idIsValid(req.params.id)) return res.status(400).json({ success: false, message: "Invalid application ID." });
   const application = await Application.findById(req.params.id);
   if (!application) return res.status(404).json({ success: false, message: "Application not found." });
-  if (req.body.status && ["pending", "reviewing", "interview", "accepted", "rejected"].includes(req.body.status)) application.status = req.body.status;
+  if (req.body.status && ["pending", "reviewing", "shortlisted", "interview", "accepted", "rejected"].includes(req.body.status)) application.status = req.body.status;
   await application.save();
   res.json({ success: true, message: "Application updated successfully.", application });
 };

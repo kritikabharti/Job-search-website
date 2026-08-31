@@ -137,6 +137,27 @@ export default function CandidateProfile() {
     setPreview(URL.createObjectURL(file));
   };
 
+  const openCurrentResume = async (download = false) => {
+    if (!profile?.resume) return;
+    try {
+      const response = await api.get(profile.resume, { responseType: "blob" });
+      const url = URL.createObjectURL(response.data);
+      if (download) {
+        const anchor = document.createElement("a");
+        anchor.href = url;
+        anchor.download = "Jobify-Resume";
+        document.body.appendChild(anchor);
+        anchor.click();
+        anchor.remove();
+      } else {
+        window.open(url, "_blank", "noopener,noreferrer");
+      }
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
+    } catch (error) {
+      toast.error(error?.response?.data?.message || "Unable to open your resume.");
+    }
+  };
+
   const handleResumeChange = (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -311,7 +332,7 @@ export default function CandidateProfile() {
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {profile?.resume && (
-                    <a href={profile.resume} target="_blank" rel="noopener noreferrer" className="rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100">View Current</a>
+                    <button type="button" onClick={() => openCurrentResume(false)} className="rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100">View Current</button>
                   )}
                   <button type="button" onClick={() => resumeRef.current?.click()} className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700"><FiUpload /> Choose Resume</button>
                 </div>

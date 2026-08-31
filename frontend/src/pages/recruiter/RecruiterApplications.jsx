@@ -18,7 +18,7 @@ import {
   FiX,
 } from "react-icons/fi";
 
-const STATUS_OPTIONS = ["pending", "reviewing", "interview", "accepted", "rejected"];
+const STATUS_OPTIONS = ["pending", "reviewing", "shortlisted", "interview", "accepted", "rejected"];
 
 export default function RecruiterApplications() {
   const navigate = useNavigate();

@@ -25,6 +25,8 @@ import ManageJobs from "../pages/recruiter/ManageJobs";
 import RecruiterApplications from "../pages/recruiter/RecruiterApplications";
 import RecruiterProfile from "../pages/recruiter/RecruiterProfile";
 import ViewApplications from "../pages/recruiter/ViewApplications";
+import CandidateSearch from "../pages/recruiter/CandidateSearch";
+import CvPackages from "../pages/recruiter/CvPackages";
 
 // Admin
 import AdminDashboard from "../pages/admin/AdminDashboard";
@@ -33,6 +35,14 @@ import AdminRecruiters from "../pages/admin/Recruiters";
 import AdminJobs from "../pages/admin/Jobs";
 import AdminApplications from "../pages/admin/Applications";
 import AdminCompanies from "../pages/admin/Companies";
+import AdminPackages from "../pages/admin/Packages";
+import AdminPayments from "../pages/admin/Payments";
+import AdminReports from "../pages/admin/Reports";
+import AdminAnalytics from "../pages/admin/Analytics";
+import AdminPricing from "../pages/admin/Pricing";
+import AdminCommissions from "../pages/admin/Commissions";
+import AdminFeatures from "../pages/admin/Features";
+import AdminSettings from "../pages/admin/Settings";
 
 // Auth
 import Login from "../pages/auth/Login";
@@ -75,6 +85,8 @@ export default function AppRoutes() {
       <Route path="/recruiter/applications" element={<Protected role="recruiter"><RecruiterApplications /></Protected>} />
       <Route path="/recruiter/applications/view" element={<Protected role="recruiter"><ViewApplications /></Protected>} />
       <Route path="/recruiter/profile" element={<Protected role="recruiter"><RecruiterProfile /></Protected>} />
+      <Route path="/recruiter/candidates" element={<Protected role="recruiter"><CandidateSearch /></Protected>} />
+      <Route path="/recruiter/packages" element={<Protected role="recruiter"><CvPackages /></Protected>} />
 
       {/* Admin */}
       <Route path="/admin/dashboard" element={<Protected role="admin"><AdminDashboard /></Protected>} />
@@ -83,6 +95,14 @@ export default function AppRoutes() {
       <Route path="/admin/jobs" element={<Protected role="admin"><AdminJobs /></Protected>} />
       <Route path="/admin/applications" element={<Protected role="admin"><AdminApplications /></Protected>} />
       <Route path="/admin/companies" element={<Protected role="admin"><AdminCompanies /></Protected>} />
+      <Route path="/admin/packages" element={<Protected role="admin"><AdminPackages /></Protected>} />
+      <Route path="/admin/payments" element={<Protected role="admin"><AdminPayments /></Protected>} />
+      <Route path="/admin/reports" element={<Protected role="admin"><AdminReports /></Protected>} />
+      <Route path="/admin/analytics" element={<Protected role="admin"><AdminAnalytics /></Protected>} />
+      <Route path="/admin/pricing" element={<Protected role="admin"><AdminPricing /></Protected>} />
+      <Route path="/admin/commission" element={<Protected role="admin"><AdminCommissions /></Protected>} />
+      <Route path="/admin/features" element={<Protected role="admin"><AdminFeatures /></Protected>} />
+      <Route path="/admin/settings" element={<Protected role="admin"><AdminSettings /></Protected>} />
 
       {/* Auth */}
       <Route path="/login" element={<Login />} />

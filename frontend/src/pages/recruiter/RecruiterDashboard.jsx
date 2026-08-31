@@ -10,6 +10,7 @@ import {
   FiFileText,
   FiPlus,
   FiSettings,
+  FiCreditCard,
   FiUsers,
 } from "react-icons/fi";
 
@@ -34,6 +35,7 @@ export default function RecruiterDashboard() {
     freeDownloadsUsed: 0,
     freeDownloadsRemaining: 10,
     credits: 0,
+    creditCost: 1,
   });
 
   const [loading, setLoading] = useState(true);
@@ -442,14 +444,14 @@ export default function RecruiterDashboard() {
               <div>
                 <h2 className="font-bold text-slate-950">Candidate Resume Downloads</h2>
                 <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-600">
-                  You have 10 free candidate resume downloads. Once those are used, each new candidate resume download consumes 1 credit.
+                  You receive {resumeAccess.freeDownloadsTotal || 0} free candidate CV unlocks every month. After those are used, each new candidate CV unlock consumes {resumeAccess.creditCost || 1} paid credit.
                 </p>
               </div>
             </div>
             <div className="flex shrink-0 gap-3">
               <div className="rounded-xl bg-white px-4 py-3 text-center shadow-sm">
                 <p className="text-xs text-slate-500">Free remaining</p>
-                <p className="mt-1 text-xl font-bold text-blue-600">{resumeAccess.freeDownloadsRemaining}/10</p>
+                <p className="mt-1 text-xl font-bold text-blue-600">{resumeAccess.freeDownloadsRemaining}/{resumeAccess.freeDownloadsTotal || 0}</p>
               </div>
               <div className="rounded-xl bg-white px-4 py-3 text-center shadow-sm">
                 <p className="text-xs text-slate-500">Credits</p>
@@ -520,6 +522,38 @@ export default function RecruiterDashboard() {
               <p className="mt-1 text-sm text-slate-500">
                 View, edit, publish, close, and delete jobs.
               </p>
+            </Link>
+
+            {/* CANDIDATES */}
+
+            <Link
+              to="/recruiter/candidates"
+              className="group rounded-2xl border border-slate-200 bg-white p-5 transition hover:border-blue-200 hover:shadow-md"
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
+                  <FiUsers size={20} />
+                </div>
+                <FiArrowRight className="text-slate-300 transition group-hover:text-blue-600" size={20} />
+              </div>
+              <h3 className="mt-4 font-semibold text-slate-950">Search Candidates</h3>
+              <p className="mt-1 text-sm text-slate-500">Search privacy-protected candidates and unlock CVs.</p>
+            </Link>
+
+            {/* CV PACKAGES */}
+
+            <Link
+              to="/recruiter/packages"
+              className="group rounded-2xl border border-slate-200 bg-white p-5 transition hover:border-blue-200 hover:shadow-md"
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
+                  <FiCreditCard size={20} />
+                </div>
+                <FiArrowRight className="text-slate-300 transition group-hover:text-blue-600" size={20} />
+              </div>
+              <h3 className="mt-4 font-semibold text-slate-950">Buy CV Credits</h3>
+              <p className="mt-1 text-sm text-slate-500">Purchase additional CV credits securely with Razorpay.</p>
             </Link>
 
             {/* APPLICATIONS */}

@@ -59,6 +59,27 @@ export default function CandidateDashboard() {
     portfolio: "",
   });
 
+  const openCandidateResume = async (download = false) => {
+    if (!profile?.resume) return;
+    try {
+      const response = await axiosClient.get(profile.resume, { responseType: "blob" });
+      const url = URL.createObjectURL(response.data);
+      if (download) {
+        const anchor = document.createElement("a");
+        anchor.href = url;
+        anchor.download = "Jobify-Resume";
+        document.body.appendChild(anchor);
+        anchor.click();
+        anchor.remove();
+      } else {
+        window.open(url, "_blank", "noopener,noreferrer");
+      }
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
+    } catch (error) {
+      toast.error(error?.response?.data?.message || "Unable to open your resume.");
+    }
+  };
+
   /*
   |--------------------------------------------------------------------------
   | AUTH CHECK
@@ -904,28 +925,23 @@ export default function CandidateDashboard() {
                   </div>
 
                   <div className="flex gap-2">
-                    <a
-                      href={
-                        profile.resume
-                      }
-                      target="_blank"
-                      rel="noopener noreferrer"
+                    <button
+                      type="button"
+                      onClick={() => openCandidateResume(false)}
                       className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
                     >
                       <FiExternalLink />
                       View
-                    </a>
+                    </button>
 
-                    <a
-                      href={
-                        profile.resume
-                      }
-                      download
+                    <button
+                      type="button"
+                      onClick={() => openCandidateResume(true)}
                       className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-700"
                     >
                       <FiDownload />
                       Download
-                    </a>
+                    </button>
                   </div>
                 </div>
               ) : (

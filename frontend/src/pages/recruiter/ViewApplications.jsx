@@ -34,6 +34,22 @@ export default function ViewApplications() {
 
   const [detailsLoading, setDetailsLoading] = useState(false);
 
+  const downloadResume = async (applicationId) => {
+    try {
+      const response = await api.get(`/applications/recruiter/applications/${applicationId}/resume/download`, { responseType: "blob" });
+      const url = URL.createObjectURL(response.data);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = "candidate-resume";
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
+    } catch (error) {
+      alert(error?.response?.data?.message || "Unable to download candidate resume.");
+    }
+  };
+
   // =====================================================
   // FETCH APPLICATIONS
   // =====================================================
@@ -1022,15 +1038,14 @@ function ApplicationDetails({
                 resume.
               </p>
 
-              <a
-                href={application.resume}
-                target="_blank"
-                rel="noopener noreferrer"
+              <button
+                type="button"
+                onClick={() => downloadResume(application._id)}
                 className="mt-4 inline-flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-700"
               >
                 <FiEye />
-                View Resume
-              </a>
+                View / Download Resume
+              </button>
 
             </section>
           )}

@@ -9,6 +9,13 @@ import {
   FiArrowRight,
   FiLogOut,
   FiShield,
+  FiCreditCard,
+  FiBarChart2,
+  FiSettings,
+  FiPackage,
+  FiFlag,
+  FiDollarSign,
+  FiSliders,
 } from "react-icons/fi";
 
 import api from "../../services/api";
@@ -105,6 +112,8 @@ export default function AdminDashboard() {
     jobs: dashboard?.totalJobs ?? 0,
     activeJobs: dashboard?.activeJobs ?? 0,
     applications: dashboard?.totalApplications ?? 0,
+    revenue: dashboard?.revenue ?? 0,
+    openReports: dashboard?.openReports ?? 0,
   };
 
   return (
@@ -299,6 +308,20 @@ export default function AdminDashboard() {
             icon={<FiFileText size={22} />}
           />
 
+          <StatCard
+            title="Revenue"
+            value={loading ? "..." : `₹${Number(stats.revenue).toLocaleString("en-IN")}`}
+            description="Paid CV package revenue"
+            icon={<FiDollarSign size={22} />}
+          />
+
+          <StatCard
+            title="Open Reports"
+            value={loading ? "..." : stats.openReports}
+            description="Reports requiring moderation"
+            icon={<FiFlag size={22} />}
+          />
+
         </div>
 
         {/* =====================================================
@@ -346,6 +369,62 @@ export default function AdminDashboard() {
               icon={<FiBriefcase size={22} />}
               title="Manage Companies"
               description="View and manage registered companies."
+            />
+
+            <AdminAction
+              to="/admin/packages"
+              icon={<FiPackage size={22} />}
+              title="CV Packages"
+              description="Configure recruiter CV credit packages and prices."
+            />
+
+            <AdminAction
+              to="/admin/payments"
+              icon={<FiCreditCard size={22} />}
+              title="Manage Payments"
+              description="Monitor Razorpay payments and credit purchases."
+            />
+
+            <AdminAction
+              to="/admin/reports"
+              icon={<FiFlag size={22} />}
+              title="Moderate Content"
+              description="Review reports and resolve platform content issues."
+            />
+
+            <AdminAction
+              to="/admin/analytics"
+              icon={<FiBarChart2 size={22} />}
+              title="Analytics & Revenue"
+              description="Track growth, applications and platform revenue."
+            />
+
+            <AdminAction
+              to="/admin/pricing"
+              icon={<FiDollarSign size={22} />}
+              title="Pricing"
+              description="Configure free monthly CV allowance and credit rules."
+            />
+
+            <AdminAction
+              to="/admin/commission"
+              icon={<FiDollarSign size={22} />}
+              title="Commission"
+              description="Configure and review platform commission."
+            />
+
+            <AdminAction
+              to="/admin/features"
+              icon={<FiSliders size={22} />}
+              title="Feature Configuration"
+              description="Enable or disable platform capabilities."
+            />
+
+            <AdminAction
+              to="/admin/settings"
+              icon={<FiSettings size={22} />}
+              title="System Settings"
+              description="Configure platform-wide operational settings."
             />
 
           </div>
