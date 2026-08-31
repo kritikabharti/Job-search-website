@@ -65,13 +65,13 @@ export default function Navbar() {
           >
             Companies
           </Link>
-
+{/* 
           <Link
             to="/pricing"
             className="text-sm font-medium text-slate-600 transition hover:text-blue-600"
           >
             Pricing
-          </Link>
+          </Link> */}
 
           <Link
             to="/about"

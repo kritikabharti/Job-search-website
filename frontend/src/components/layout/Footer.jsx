@@ -46,9 +46,9 @@ export default function Footer() {
                 Find Candidates
               </Link>
 
-              <Link to="/pricing" className="hover:text-white">
+              {/* <Link to="/pricing" className="hover:text-white">
                 CV Credits
-              </Link>
+              </Link> */}
             </div>
           </div>
 
@@ -64,9 +64,9 @@ export default function Footer() {
                 Contact
               </Link>
 
-              <Link to="/pricing" className="hover:text-white">
+              {/* <Link to="/pricing" className="hover:text-white">
                 Pricing
-              </Link>
+              </Link> */}
             </div>
           </div>
 
