@@ -33,10 +33,32 @@ const app = express();
 // Middleware
 // ===============================
 
-app.use(cors({
-  origin: process.env.CLIENT_URL,
-  credentials: true
-}));
+const allowedOrigins = [
+  "http://localhost:5173",
+  "http://localhost:3000",
+  "https://job-search-website-ow8q.onrender.com",
+];
+
+app.use(
+  cors({
+    origin: function (origin, callback) {
+      // Allow requests such as Postman/server-to-server
+      if (!origin) {
+        return callback(null, true);
+      }
+
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      console.log("Blocked CORS origin:", origin);
+      return callback(new Error("Not allowed by CORS"));
+    },
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  })
+);
 
 app.use(express.json());
 
