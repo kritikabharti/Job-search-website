@@ -17,7 +17,6 @@ import adminAdvancedRoutes from "./routes/adminAdvancedRoutes.js";
 import reportRoutes from "./routes/reportRoutes.js";
 import fileRoutes from "./routes/fileRoutes.js";
 
-
 dotenv.config();
 
 console.log("EMAIL_USER:", process.env.EMAIL_USER);
@@ -26,11 +25,12 @@ console.log(
   process.env.EMAIL_PASS ? "LOADED" : "MISSING"
 );
 
+console.log("CLIENT_URL:", process.env.CLIENT_URL);
+
 const app = express();
 
-
 // ===============================
-// Middleware
+// CORS
 // ===============================
 
 const allowedOrigins = [
@@ -42,7 +42,8 @@ const allowedOrigins = [
 app.use(
   cors({
     origin: function (origin, callback) {
-      // Allow requests such as Postman/server-to-server
+      // Allow Postman, server-to-server and other requests
+      // that don't contain an Origin header.
       if (!origin) {
         return callback(null, true);
       }
@@ -52,26 +53,64 @@ app.use(
       }
 
       console.log("Blocked CORS origin:", origin);
-      return callback(new Error("Not allowed by CORS"));
+
+      // Don't throw an error here.
+      // Simply reject the origin.
+      return callback(null, false);
     },
+
     credentials: true,
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
+
+    methods: [
+      "GET",
+      "POST",
+      "PUT",
+      "PATCH",
+      "DELETE",
+      "OPTIONS",
+    ],
+
+    allowedHeaders: [
+      "Content-Type",
+      "Authorization",
+    ],
   })
 );
 
+// ===============================
+// BODY PARSING
+// ===============================
+
 app.use(express.json());
-
-
-// ===============================
-// Database
-// ===============================
-
-connectDB().then(() => bootstrapDefaults().catch((error) => console.error("Bootstrap defaults error:", error)));
-
+app.use(express.urlencoded({ extended: true }));
 
 // ===============================
-// Health Check
+// DATABASE
+// ===============================
+
+connectDB()
+  .then(async () => {
+    console.log("MongoDB connected successfully");
+
+    try {
+      await bootstrapDefaults();
+      console.log("Bootstrap defaults completed");
+    } catch (error) {
+      console.error(
+        "Bootstrap defaults error:",
+        error
+      );
+    }
+  })
+  .catch((error) => {
+    console.error(
+      "MongoDB connection error:",
+      error
+    );
+  });
+
+// ===============================
+// HEALTH CHECK
 // ===============================
 
 app.get("/", (req, res) => {
@@ -81,53 +120,110 @@ app.get("/", (req, res) => {
   });
 });
 
-
 // ===============================
-// Auth Routes
+// AUTH ROUTES
 // ===============================
 
 app.use("/api/auth", authRoutes);
+
+// ===============================
+// JOB ROUTES
+// ===============================
+
 app.use("/api", jobRoutes);
+
+// ===============================
+// ADMIN ROUTES
+// ===============================
+
 app.use("/api/admin", adminRoutes);
 app.use("/api/admin", adminAdvancedRoutes);
+
+// ===============================
+// APPLICATION ROUTES
+// ===============================
+
 app.use("/api/applications", applicationRoutes);
+
+// ===============================
+// FILE ROUTES
+// ===============================
+
 app.use("/api/files", fileRoutes);
+
+// ===============================
+// PROFILE ROUTES
+// ===============================
+
 app.use("/api/profile", profileRoutes);
+
+// ===============================
+// COMPANY ROUTES
+// ===============================
+
 app.use("/api/companies", companyRoutes);
+
+// ===============================
+// RECRUITER ROUTES
+// ===============================
+
 app.use("/api/recruiter", recruiterRoutes);
 app.use("/api/recruiter", recruiterCvRoutes);
+
+// ===============================
+// PAYMENT ROUTES
+// ===============================
+
 app.use("/api/payments", paymentRoutes);
+
+// ===============================
+// REPORT ROUTES
+// ===============================
+
 app.use("/api/reports", reportRoutes);
+
+// ===============================
+// ERROR HANDLER
+// ===============================
+
+app.use((err, req, res, next) => {
+  console.error("Unhandled API error:", err);
+
+  if (err?.name === "MulterError") {
+    return res.status(400).json({
+      success: false,
+      message:
+        err.message || "File upload failed.",
+    });
+  }
+
+  return res.status(500).json({
+    success: false,
+    message:
+      err.message || "Internal server error.",
+  });
+});
 
 // ===============================
 // 404
 // ===============================
 
-app.use((err, req, res, next) => {
-  if (err?.name === "MulterError") {
-    return res.status(400).json({ success: false, message: err.message || "File upload failed." });
-  }
-  if (err) {
-    console.error("Unhandled API error:", err);
-    return res.status(400).json({ success: false, message: err.message || "Request failed." });
-  }
-  next();
-});
-
 app.use((req, res) => {
   res.status(404).json({
     success: false,
     message: "Route not found",
+    path: req.originalUrl,
   });
 });
 
-
 // ===============================
-// Server
+// SERVER
 // ===============================
 
 const PORT = process.env.PORT || 5000;
 
-app.listen(PORT, () => {
-  console.log(`Jobify API running on port ${PORT}`);
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(
+    `Jobify API running on port ${PORT}`
+  );
 });
